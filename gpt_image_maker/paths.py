@@ -14,6 +14,14 @@ def compute_output_path(image_url: str, output_root: Path, extension: str = "png
     return target.with_suffix(f".{extension}")
 
 
+def compute_cache_path(image_url: str, output_root: Path) -> Path:
+    parsed = urlparse(image_url)
+    url_path = parsed.path.lstrip("/")
+    if not url_path:
+        raise ValueError("Image URL missing path component")
+    return Path(output_root) / Path(url_path)
+
+
 def compute_temp_download_path(image_url: str, temp_root: Path) -> Path:
     parsed = urlparse(image_url)
     filename = Path(parsed.path).name

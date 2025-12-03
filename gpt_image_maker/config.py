@@ -54,6 +54,7 @@ class CLIConfig:
     preview_timeout: int = 0
     ping_url: Optional[str] = None
     overwrite: bool = False
+    download_only: bool = False
 
 
 DEFAULT_COLUMNS = [

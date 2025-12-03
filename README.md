@@ -26,4 +26,6 @@ See [SPEC.md](SPEC.md) for the full technical requirements.
      --prompt-template "{brand} {model} {production_period}, {body_type}, {generation} в боковом варианте на белом фоне. Фон строго прозрачный."
    ```
 
+To pre-stage only the source images and reuse them later without regenerating outputs, pass `--download-only`. Files are stored under `--output-root` mirroring the URL path (and original extension), enabling cached reuse on subsequent runs.
+
 Use `--help` for the full list of options.

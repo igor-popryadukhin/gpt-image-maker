@@ -36,6 +36,7 @@ def parse_args(argv: list[str]) -> CLIConfig:
     parser.add_argument("--reset-state", action="store_true")
     parser.add_argument("--state-file", type=Path)
     parser.add_argument("--overwrite", action="store_true")
+    parser.add_argument("--download-only", action="store_true")
 
     args = parser.parse_args(argv)
 
@@ -73,6 +74,7 @@ def parse_args(argv: list[str]) -> CLIConfig:
         preview_timeout=args.preview_timeout,
         ping_url=args.ping_url,
         overwrite=args.overwrite,
+        download_only=args.download_only,
         columns=None,
         state=state_cfg,
     )

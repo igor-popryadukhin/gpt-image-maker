@@ -10,7 +10,7 @@ from .config import CLIConfig
 from .downloader import download_image
 from .generator import ImageGenerator
 from .net import is_network_error, wait_for_network
-from .paths import compute_output_path, ensure_parent_dir
+from .paths import compute_cache_path, compute_output_path, ensure_parent_dir
 from .prompt_builder import PromptBuilder
 from .reader import InputReader
 from .state import LineStatus, State
@@ -27,9 +27,9 @@ class Runner:
     def run(self) -> None:
         input_file = self.config.input_file
         state = self._prepare_state()
-        prompt_template = self._load_prompt_template()
-        builder = PromptBuilder(prompt_template)
-        generator = ImageGenerator(self.config.generation, self.config.retry, api_key=self.api_key)
+        prompt_template = None if self.config.download_only else self._load_prompt_template()
+        builder = PromptBuilder(prompt_template) if prompt_template else None
+        generator = None if self.config.download_only else ImageGenerator(self.config.generation, self.config.retry, api_key=self.api_key)
 
         reader = list(InputReader(input_file, delimiter=self.config.delimiter, columns=self.config.columns))
         total = len(reader)
@@ -38,19 +38,35 @@ class Runner:
         for row in progress_iter:
             if row.line_number in state.statuses and state.statuses[row.line_number].status == "ok":
                 continue
+            cache_path = compute_cache_path(row.data["image_url"], self.config.output_root)
+            if self.config.download_only:
+                download_path = download_image(
+                    row.data["image_url"], input_file.parent, self.config.retry, target_path=cache_path, overwrite=self.config.overwrite
+                )
+                if not download_path:
+                    state.statuses[row.line_number] = LineStatus(status="error", message="download failed")
+                else:
+                    state.statuses[row.line_number] = LineStatus(status="ok")
+                state.save(self.config.state.state_file)
+                continue
+
             output_path = compute_output_path(row.data["image_url"], self.config.output_root, extension="png")
             if output_path.exists() and not self.config.overwrite:
                 state.statuses[row.line_number] = LineStatus(status="skip", message="exists")
                 state.save(self.config.state.state_file)
                 continue
 
-            prompt = builder.build(row.data)
-            download_path = download_image(row.data["image_url"], input_file.parent, self.config.retry)
+            download_path = cache_path if cache_path.exists() and not self.config.overwrite else None
+            if download_path is None:
+                download_path = download_image(
+                    row.data["image_url"], input_file.parent, self.config.retry, target_path=cache_path, overwrite=self.config.overwrite
+                )
             if not download_path:
                 state.statuses[row.line_number] = LineStatus(status="error", message="download failed")
                 state.save(self.config.state.state_file)
                 continue
 
+            prompt = builder.build(row.data)
             image_bytes = generator.generate(prompt, download_path)
             if image_bytes is None:
                 state.statuses[row.line_number] = LineStatus(status="error", message="generation failed")

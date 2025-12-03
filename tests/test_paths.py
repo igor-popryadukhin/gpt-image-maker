@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from gpt_image_maker.paths import compute_output_path, compute_temp_download_path
+from gpt_image_maker.paths import compute_cache_path, compute_output_path, compute_temp_download_path
 
 
 def test_compute_output_path_basic():
@@ -15,3 +15,10 @@ def test_compute_temp_download_path_uses_filename():
     result = compute_temp_download_path(url, temp_root)
     assert result.name == "car.jpg"
     assert result.parent == temp_root
+
+
+def test_compute_cache_path_preserves_structure_and_extension():
+    url = "https://example.com/images/car.jpeg"
+    output_root = Path("/root/out")
+    result = compute_cache_path(url, output_root)
+    assert result == Path("/root/out/images/car.jpeg")

@@ -13,10 +13,23 @@ from .paths import compute_temp_download_path, ensure_parent_dir
 logger = logging.getLogger(__name__)
 
 
-def download_image(image_url: str, input_file_dir: Path, retry: RetryConfig) -> Optional[Path]:
-    temp_root = input_file_dir / "tmp"
-    target = compute_temp_download_path(image_url, temp_root)
+def download_image(
+    image_url: str,
+    input_file_dir: Path,
+    retry: RetryConfig,
+    target_path: Optional[Path] = None,
+    overwrite: bool = False,
+) -> Optional[Path]:
+    if target_path is None:
+        temp_root = input_file_dir / "tmp"
+        target = compute_temp_download_path(image_url, temp_root)
+    else:
+        target = target_path
     ensure_parent_dir(target)
+
+    if target.exists() and not overwrite:
+        logger.info("Using cached download for %s at %s", image_url, target)
+        return target
 
     backoff = retry.base_backoff
     for attempt in range(1, retry.download_retries + 1):
