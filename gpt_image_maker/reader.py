@@ -26,7 +26,7 @@ class InputReader:
 
     def __iter__(self) -> Iterable[ParsedRow]:
         with self.path.open("r", encoding="utf-8") as f:
-            reader = csv.reader(f, delimiter=self.delimiter)
+            reader = csv.reader(f, delimiter=self.delimiter, skipinitialspace=True)
             for idx, row in enumerate(reader, start=1):
                 raw_line = ",".join(row)
                 if not row:
@@ -36,7 +36,17 @@ class InputReader:
                     logger.error("Line %s has insufficient columns", idx)
                     raise ValueError(f"Line {idx} has insufficient columns: {row}")
                 data = {col: row[i].strip().strip('"') for i, col in enumerate(self.columns)}
+
                 image_url = data.get("image_url", "")
+                if not image_url or not image_url.startswith(("http://", "https://")):
+                    logger.debug("Attempting to recover image_url for line %s", idx)
+                    fallback_url = next(
+                        (value.strip().strip('"') for value in row if value.strip().startswith(("http://", "https://"))),
+                        "",
+                    )
+                    if fallback_url:
+                        data["image_url"] = fallback_url
+                        image_url = fallback_url
                 if not image_url or not image_url.startswith(("http://", "https://")):
                     raise ValueError(f"Line {idx} has invalid image_url: {image_url}")
                 yield ParsedRow(data=data, raw=raw_line, line_number=idx)
