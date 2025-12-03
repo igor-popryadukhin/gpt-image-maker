@@ -29,7 +29,7 @@ class ImageGenerator:
         for attempt in range(1, self.retry.generation_retries + 1):
             try:
                 with image_path.open("rb") as f:
-                    result = self.client.images.generate(
+                    result = self.client.images.edit(
                         model=self.generation.model,
                         prompt=prompt,
                         image=f,
